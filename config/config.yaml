@@ -1,0 +1,74 @@
+# Configuration for ENA download workflow
+# Adjust defaults, paths, filters, and per-project conditions in this single file.
+
+defaults:
+  download: fastq_ftp
+  rename_pattern: SAMPLE_${sample_alias}_LIB_${library_name}_RUN-${run_accession}
+
+paths:
+  output_dir: ${REPO_DIR}/test_2
+  metadata_dir: ${OUTPUT_DIR}
+
+parameters:
+  reference_fasta: ${REPO_DIR}/chrY_ref.fasta
+
+# List all metadata columns that may be needed.
+base_fields: study_accession,sample_accession,submitted_ftp,scientific_name,library_layout,sample_alias,library_name,fastq_bytes,secondary_study_accession
+
+# To run a subset of conditions, list their keys under "projects_to_download".
+# When omitted, all conditions defined below are processed.
+projects_to_download:
+  - PRJNA361023
+
+functions:
+  keep_fastq: yes
+  generate_consensus: no
+  trim_unknown_adapters: yes
+  custom_function: no
+  paleomix_bam: no
+  run_eager: no
+
+conditions:
+  PRJEB42199_folder_name:
+    study_accession: PRJEB42199
+    secondary_sample_accession: ERS10732038
+    run_accession: ERR9147947
+    
+  PRJEB36284_folder_name:
+      study_accession: PRJEB36284
+      secondary_sample_accession: ERS492821
+      run_accession: ERR6090673,ERR6090674
+    
+  PRJEB20635:
+    study_accession: PRJEB20635
+    secondary_sample_accession: ERS1754869,ERS1754870,ERS1754871,ERS1754872,ERS1754876,ERS1754879,ERS1754883,ERS1754884,ERS1754888,ERS1754889,ERS1754890,ERS1754891,ERS1754892,ERS1754893,ERS1754897,ERS1754899,ERS1754901,ERS1754902,ERS1754903,ERS1754906,ERS1754907,ERS1754908,ERS1754909,ERS1754910,ERS1754914,ERS1754915,ERS1754916,ERS1754917,ERS1754918,ERS1754919,ERS1754921,ERS1754922,ERS1754925,ERS1754926,ERS1754929,ERS1754932,ERS1754934,ERS1754939,ERS1754940,ERS1754941,ERS1754942,ERS1754946,ERS1754947,ERS1754949,ERS1754951,ERS1754953,ERS1754954,ERS1754955,ERS1754956,ERS1754957,ERS1754959,ERS1754962,ERS1754964
+    download: fastq_ftp
+    rename_pattern: SAMPLE_${sample_alias}_LIB_${library_name}_RUN-${run_accession}
+
+  SRP058219:
+    secondary_study_accession: SRP058219
+    secondary_sample_accession: SRS933419,SRS933416,SRS933421,SRS933418,SRS933414
+
+  PRJNA361023:
+    study_accession: PRJNA361023
+    secondary_sample_accession: SRS1915941
+
+  PRJNA274504:
+    study_accession: PRJNA274504
+    secondary_sample_accession: SRS1025425
+
+  PRJNA266585:
+    study_accession: PRJNA266585
+    secondary_sample_accession: SRS1129578,SRS1135611,SRS1129832,SRS1129834,SRS1135625,SRS1129836,SRS1135618,SRS1135595,SRS1135617,SRS1135615,SRS1135614,SRS1135594
+
+  PRJNA233638:
+    study_accession: PRJNA233638
+    secondary_sample_accession: SRS540603,SRS540600,SRS540601,SRS539231,SRS540532,SRS540529,SRS540592,SRS540590,SRS540631,SRS540533,SRS540544
+
+  PRJNA331222:
+    study_accession: PRJNA331222
+    secondary_sample_accession: SRS1704985,SRS1754962,SRS1733420
+
+  PRJNA417738:
+    study_accession: PRJNA417738
+    secondary_sample_accession: SRS2715683,SRS2715682

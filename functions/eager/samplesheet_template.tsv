@@ -1,0 +1,2 @@
+Sample_Name	Library_ID	Lane	Colour_Chemistry	SeqType	Organism	Strandedness	UDG_Treatment	R1	R2	BAM
+${EAGER_SAMPLE_NAME}	${EAGER_LIBRARY_ID}	1	2	${EAGER_SEQTYPE}	${EAGER_ORGANISM}	${EAGER_STRANDEDNESS}	${EAGER_UDG_TREATMENT}	${EAGER_R1}	${EAGER_R2}	NA
