@@ -127,6 +127,28 @@ run_eager_pipeline_for_fastq() {
   "${eager_command[@]}" "${fastq_file}" "${output_dir}" "${sample_label}"
 }
 
+run_bwa_aln_for_fastq() {
+  local fastq_file="$1"
+  local output_dir="${2:-$(dirname "$fastq_file")}"
+  local sample_label="${3:-}"
+  local bwa_script
+  bwa_script="${BWA_ALN_SCRIPT:-${FUNCTIONS_DIR}/bwa_aln/main.sh}"
+
+  if [[ ! -f "$fastq_file" ]]; then
+    echo "FASTQ file not found for BWA aln: ${fastq_file}" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$bwa_script" ]]; then
+    echo "BWA aln script not found: ${bwa_script}" >&2
+    return 1
+  fi
+
+  # Use bash explicitly so the step runs even on filesystems where execute
+  # permission bits are not honored (common on some HPC mounts).
+  bash "${bwa_script}" "${fastq_file}" "${output_dir}" "${sample_label}"
+}
+
 run_custom_function_for_fastq() {
   local fastq_file="$1"
   local output_dir="${2:-$(dirname "$fastq_file")}"

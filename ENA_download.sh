@@ -47,6 +47,8 @@ echo "generate_consensus: ${GENERATE_CONSENSUS}"
 echo "trim_unknown_adapters: ${TRIM_UNKNOWN_ADAPTERS}"
 echo "paleomix_bam: ${PALEOMIX_BAM}"
 echo "run_eager: ${RUN_EAGER}"
+echo "run_bwa_aln: ${RUN_BWA_ALN}"
+echo "ignore_read2_download: ${IGNORE_READ2_DOWNLOAD}"
 echo "reference_fasta: ${REFERENCE_FASTA:-<not set>}"
 echo "custom_function: ${CUSTOM_FUNCTION}"
 

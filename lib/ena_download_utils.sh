@@ -35,6 +35,8 @@ initialize_defaults() {
   REFERENCE_FASTA=""
   CUSTOM_FUNCTION="no"
   RUN_EAGER="no"
+  RUN_BWA_ALN="no"
+  IGNORE_READ2_DOWNLOAD="no"
 }
 
 trim_whitespace() {
@@ -231,6 +233,14 @@ load_config_from_yaml() {
           value="${value,,}"
           RUN_EAGER="$value"
           ;;
+        run_bwa_aln)
+          value="${value,,}"
+          RUN_BWA_ALN="$value"
+          ;;
+        ignore_read2_download)
+          value="${value,,}"
+          IGNORE_READ2_DOWNLOAD="$value"
+          ;;
       esac
       continue
     fi
@@ -285,6 +295,20 @@ load_config_from_yaml() {
     PROJECTS_TO_DOWNLOAD=( "${CONDITION_NAMES[@]}" )
   fi
 
+  # Preserve order but remove accidental duplicates from projects_to_download.
+  if [[ ${#PROJECTS_TO_DOWNLOAD[@]} -gt 0 ]]; then
+    local -A seen_conditions=()
+    local -a deduped_conditions=()
+    local condition_name
+    for condition_name in "${PROJECTS_TO_DOWNLOAD[@]}"; do
+      if [[ -z "${seen_conditions[$condition_name]:-}" ]]; then
+        deduped_conditions+=("${condition_name}")
+        seen_conditions[$condition_name]=1
+      fi
+    done
+    PROJECTS_TO_DOWNLOAD=("${deduped_conditions[@]}")
+  fi
+
   if [[ ${#PROJECTS_TO_DOWNLOAD[@]} -eq 0 ]]; then
     echo "Error: No conditions defined in ${yaml_file}."
     return 1
@@ -292,6 +316,17 @@ load_config_from_yaml() {
 
   if [[ "${GENERATE_CONSENSUS}" == "yes" && -z "${REFERENCE_FASTA}" ]]; then
     echo "Warning: generate_consensus is enabled but no reference_fasta is set under parameters; consensus steps may fail."
+  fi
+
+  if [[ "${RUN_BWA_ALN}" == "yes" ]]; then
+    if [[ -z "${REFERENCE_FASTA}" ]]; then
+      echo "Warning: run_bwa_aln is enabled but no reference_fasta is set. Disabling run_bwa_aln for this run."
+      RUN_BWA_ALN="no"
+    elif [[ ! -f "${REFERENCE_FASTA}" ]]; then
+      echo "Warning: run_bwa_aln is enabled but reference_fasta does not exist: ${REFERENCE_FASTA}"
+      echo "Disabling run_bwa_aln for this run."
+      RUN_BWA_ALN="no"
+    fi
   fi
 }
 
@@ -588,6 +623,27 @@ download_and_rename() {
       fi
     fi
 
+    if [[ "${RUN_BWA_ALN:-no}" == "yes" ]]; then
+      local bwa_errexit_was_set=0
+      if [[ $- == *e* ]]; then
+        bwa_errexit_was_set=1
+        set +e
+      fi
+
+      run_bwa_aln_for_fastq "${primary_fastq}" "${condition_dir}" "${sample_label}"
+      local bwa_status=$?
+
+      if [[ ${bwa_errexit_was_set} -eq 1 ]]; then
+        set -e
+      else
+        set +e
+      fi
+
+      if [[ ${bwa_status} -ne 0 ]]; then
+        echo "BWA aln run failed for '${renamed_path}' (exit code: ${bwa_status}). Skipping BWA aln for this file."
+      fi
+    fi
+
     if [[ "${CUSTOM_FUNCTION:-no}" == "yes" ]]; then
       local custom_errexit_was_set=0
       if [[ $- == *e* ]]; then
@@ -660,6 +716,14 @@ download_and_rename() {
     fi
 
     if [[ -n "${paired_prefix}" ]]; then
+      if [[ "${IGNORE_READ2_DOWNLOAD:-no}" == "yes" ]]; then
+        if [[ "${read_number}" == "1" ]]; then
+          process_downloaded_fastq "${renamed_path}" "${paired_prefix}"
+          PROCESSED_PAIRED_FASTQS["${paired_prefix}"]=1
+        fi
+        return
+      fi
+
       local mate_suffix
       mate_suffix="$((3 - read_number))"
       local mate_fastq="${condition_dir}/${paired_prefix}_${mate_suffix}.fastq.gz"
@@ -689,6 +753,12 @@ download_and_rename() {
 
     local file_name
     file_name=$(basename "${file_url}")
+
+    if [[ "${IGNORE_READ2_DOWNLOAD:-no}" == "yes" && "${file_name}" =~ _2\.fastq\.gz$ ]]; then
+      echo "Skipping ${file_name}: ignore_read2_download is enabled."
+      continue
+    fi
+
     local download_target="${condition_dir}/${file_name}"
 
     IFS=$'\t' read -r -a rename_values_array <<< "$rename_vals"
@@ -738,10 +808,14 @@ download_and_rename() {
 
     if [[ -f "$download_target" ]]; then
       echo "Renaming '${file_name}' to '${final_name}'"
-      if ! mv "${download_target}" "${renamed_path}"; then
-        echo "Failed to rename '${file_name}' to '${final_name}'; leaving original download in place."
-        cleanup_rename_vars
-        continue
+      if [[ "${download_target}" == "${renamed_path}" ]]; then
+        echo "Rename skipped: source and destination are identical (${renamed_path})."
+      else
+        if ! mv "${download_target}" "${renamed_path}"; then
+          echo "Failed to rename '${file_name}' to '${final_name}'; leaving original download in place."
+          cleanup_rename_vars
+          continue
+        fi
       fi
 
       process_or_queue_fastq "${renamed_path}" "${new_name}"

@@ -27,6 +27,8 @@ functions:
   custom_function: no
   paleomix_bam: no
   run_eager: no
+  run_bwa_aln: no
+  ignore_read2_download: no
 
 conditions:
   PRJEB42199_folder_name:

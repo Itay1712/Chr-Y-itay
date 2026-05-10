@@ -21,6 +21,7 @@ Running `bash -n ENA_download.sh ...` only performs a syntax check and **will no
 - `functions/generate_consensus/main.sh` — consensus generator invoked after downloads when enabled; takes a FASTQ input and writes a consensus FASTA.
 - `functions/paleomix_bam/main.sh` — runs the PALEOMIX BAM pipeline for a FASTQ (pairing R1/R2 mates when available) using the renamed file as the sample/library name and emits a per-file YAML.
 - `functions/eager/main.sh` — renders nf-core/eager samplesheet/config templates from downloaded FASTQs and launches the pipeline when enabled.
+- `functions/bwa_aln/main.sh` — runs `bwa aln` + `bwa samse`, converts to sorted BAM, and indexes the BAM when enabled.
 - `functions/trim_adapters/main.sh` — trims unknown adapters from FASTQ files using `fastp` when `functions.trim_unknown_adapters` is enabled.
 - `functions/custom_function/main.sh` — placeholder script to add bespoke FASTQ processing, enabled via `functions.custom_function` in the config.
 - `lib/ena_download_utils.sh` — helper functions for metadata retrieval, filtering, downloading, and renaming.
@@ -38,3 +39,9 @@ Set `functions.paleomix_bam: yes` in `config/config.yaml` to run the PALEOMIX BA
 
 Enable `functions.run_eager: yes` in `config/config.yaml` to prepare an nf-core/eager samplesheet and config per FASTQ and run the pipeline via `functions/eager/main.sh`. The script fills the provided templates with the renamed FASTQ paths, uses the configured `parameters.reference_fasta`, and writes outputs under `<condition>/eager/<sample>/` alongside the rendered templates.
 Set `EAGER_PIPELINE_REV` to pin a different nf-core/eager release (defaults to `2.5.3`), or `EAGER_PIPELINE_REF` to point at a fork.
+
+## BWA aln BAM generation
+
+Enable `functions.run_bwa_aln: yes` in `config/config.yaml` to run `functions/bwa_aln/main.sh` for each renamed FASTQ. The function uses `parameters.reference_fasta` (or `REF` if set), runs `bwa index` once per reference (`*.bwt` check), executes `bwa aln`/`bwa samse`, and writes `<sample>.sorted.bam` plus `<sample>.sorted.bam.bai` in the condition output directory. Because this implementation uses `samse`, paired-end `_2.fastq(.gz)` mates are skipped intentionally and only read 1 files are aligned. You can override thread count with `BWA_THREADS` (default `16`).
+
+To skip downloading read-2 files entirely, set `functions.ignore_read2_download: yes`. When enabled, any ENA URL ending in `_2.fastq.gz` is ignored during download, and post-download processing (including `run_bwa_aln`) runs directly on each `_1.fastq.gz` without waiting for mate pairing.
